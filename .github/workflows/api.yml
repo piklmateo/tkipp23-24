@@ -1,0 +1,22 @@
+name: api
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Restore dependencies
+      run: nuget restore Software/EventManager/EventManager.sln
+
+    - name: Run application with secret
+      env:
+        MY_SECRET: ${{ secrets.EMAIL_PASSWORD }}
+      run: |
+        cd Software/EventManager/EventManager
+        dotnet run --project PresentationLayer.csproj --secret $EMAIL_PASSWORD

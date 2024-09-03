@@ -1,0 +1,43 @@
+name: CD Pipeline
+
+on:
+  workflow_dispatch:
+      
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Restore dependencies
+      run: nuget restore Software/EventManager/EventManager.sln
+      
+    - name: Navigate to Workspace
+      run: cd $GITHUB_WORKSPACE
+
+    - name: Build
+      run: msbuild Software/EventManager/EventManager.sln /p:platform="Any CPU" /p:Configuration=Release
+        
+    - name: Create a setup
+      run: msbuild Software/EventManager/EventManager.sln /t:Publish /p:Configuration=Release /p:PublishDir=publish/
+        
+    - name: Create zip archive
+      uses: TheDoctor0/zip-release@0.7.5
+      with:
+        type: 'zip'
+        filename: 'setup.zip'
+        path: publish/
+      
+    - name: Create a release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: ${{secrets.GITHUB_TOKEN}}
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: setup.zip

@@ -1,0 +1,45 @@
+name: Run Selenium Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  selenium-tests:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14.x'
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Restore dependencies
+      run: nuget restore Software/EventManager/EventManager.sln
+
+    - name: Build
+      run: msbuild Software/EventManager/EventManager.sln /p:Configuration=Release
+      
+    - name: Enable Developer Mode
+      run: powershell -command "reg add 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' /t REG_DWORD /f /v 'AllowDevelopmentWithoutDevLicense' /d 1"
+      
+    - name: Download WinAppDriver MSI
+      run: |
+        curl -L -o WindowsApplicationDriver_1.2.1.msi https://github.com/microsoft/WinAppDriver/releases/download/v1.2.1/WindowsApplicationDriver_1.2.1.msi
+
+    - name: Install WinAppDriver MSI
+      run: |
+        msiexec /i WindowsApplicationDriver_1.2.1.msi /quiet /norestart
+
+    - name: Run WinAppDriver
+      run: |
+        "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
+
+    - name: Run Selenium Tests
+      run: dotnet test Software/EventManager/AcceptanceTests/AcceptanceTests.csproj --no-build --configuration Release --logger "trx;LogFileName=selenium_test_results.trx"
+

@@ -1,0 +1,30 @@
+name: Create .exe App
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Restore dependencies
+      run: nuget restore Software/EventManager/EventManager.sln
+
+    - name: Build
+      run: msbuild Software/EventManager/EventManager.sln /p:Configuration=Release
+
+    - name: Publish
+      run: dotnet publish Software/EventManager/EventManager/EventManager.sln --configuration Release --output ./publish --self-contained --runtime win-x64 
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: EventManager
+        path: ./publish
